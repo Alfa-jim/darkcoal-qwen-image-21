@@ -6,9 +6,15 @@ editing/composition with **0–10 ordered reference images**, and PNG alpha outp
 The private inference engine stays loaded between jobs. All weights live on a
 network volume; none are downloaded at worker startup or baked into the image.
 
-Target container: `ghcr.io/alfa-jim/darkcoal-qwen-image-21:latest`.
-This tag is usable only after the GitHub Actions build and public package setup
-succeed; see `docs/VALIDATION.md` for the actual verification status.
+Published public container: `ghcr.io/alfa-jim/darkcoal-qwen-image-21:latest`.
+Verified immutable image:
+
+```text
+ghcr.io/alfa-jim/darkcoal-qwen-image-21@sha256:b430f7bccc84365916936b5510b8167e7e30ec21dac8078778c3c5432fcf185d
+```
+
+Build and CPU container checks passed. GPU inference is not yet tested; see
+`docs/VALIDATION.md` for the exact evidence.
 
 This worker accepts prompt/image requests, rather than ComfyUI workflow JSON.
 It uses the same `output.images` base64 response shape as the adjacent workers.
@@ -25,6 +31,12 @@ into the Pod terminal.** This command is self-contained: no GitHub clone, GPU,
 PyTorch, HF CLI, or Hugging Face login is needed. It includes the installer and
 pinned manifest. Downloads total **11.32 GB** (10.55 GiB). Rerunning resumes
 interrupted `.part` files and verifies all completed files with SHA256.
+
+Or paste this short command, pinned to the tested release:
+
+```bash
+curl -fL --retry 3 https://raw.githubusercontent.com/Alfa-jim/darkcoal-qwen-image-21/d7d83cc6d41ceb17854eebff01e7e7a41dc85265/DOWNLOAD_ON_CPU_POD.sh -o /tmp/qwen21-models.sh && bash /tmp/qwen21-models.sh
+```
 
 For a different configured mount, set this before pasting:
 
@@ -51,6 +63,13 @@ Weights are pinned to revisions, sizes and hashes in `model-lock.json`:
 | Encoder | `Qwen-Image-2.1-Turbo-Abliterated-Uncensored-AD-Q4_K.gguf` | 5.29 GB |
 | Vision | `mmproj-Qwen-Image-2.1-Turbo-Abliterated-Uncensored-F16.gguf` | 1.16 GB |
 | VAE | `qwen_image_2.1_vae_bf16.safetensors` | 0.68 GB |
+
+These are separate components: the denoiser generates the image, the encoder
+interprets the prompt, the mmproj processes reference images, and the VAE converts
+the model's output into pixels. Only the denoiser and encoder are AD-Q4_K. Build
+logs list other quantization kernels because the engine supports multiple formats;
+the installer does not download alternative Q6 or Q8 models. The AD-Q4_K layout
+also retains higher precision for selected tensors inside those two files.
 
 The requested “Uncensored” repository contains the encoder/projector, not the
 image denoiser. That denoiser comes from AtomicChat's companion Turbo repository.
@@ -184,9 +203,13 @@ Local Docker build:
 ```bash
 docker build --platform linux/amd64 -t darkcoal-qwen-image-21:local .
 docker run --rm --entrypoint python darkcoal-qwen-image-21:local scripts/smoke.py
-docker run --rm --gpus all -v /path/to/network-volume:/runpod-volume \
+docker run --rm --gpus all -v /path/to/network-volume:/runpod-volume:ro \
+  -v "$(pwd)/test_input.json:/app/test_input.json:ro" \
   darkcoal-qwen-image-21:local
 ```
+
+The last command is a one-shot GPU test: outside RunPod, the SDK reads the mounted
+test request, runs it and exits. It does not start a public HTTP API.
 
 CPU tests (tiny fixtures; no production weights):
 

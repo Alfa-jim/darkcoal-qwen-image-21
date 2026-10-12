@@ -30,10 +30,17 @@ failed startup masquerades as a healthy worker.
 - [x] Add startup supervision, pinned CUDA Docker build, dependencies, examples,
   native reference helper, documentation, build/test CI and publishing helper.
 - [x] Run full tests, syntax checks, static container/CI checks, and final review.
-- [ ] Commit the isolated project. Create public repository and push main;
+- [x] Commit the isolated project. Create public repository and push main;
   monitor GHCR build and verify public manifest and immutable digest.
-- [ ] Report actual evidence and distinguish unavailable GPU checks.
+- [x] Report actual evidence and distinguish unavailable GPU checks.
 
 Ruling: a new independent repository in the requested folder supplies isolation;
 no existing repository or worktree is modified. The user's implementation request
 approves writing the already reviewed design and implementation artifacts.
+
+Publication used the existing authenticated GitHub browser session to create the
+repository and connected GitHub Git-data tools to push the verified tree. The
+published tree SHA matched the local tree exactly; local main then adopted the
+published commit with a soft reset and tracks origin/main. No CLI login was needed.
+Documentation-only release evidence uses a skip-CI commit; the runtime image and
+pinned CPU preparation command remain tied to the tested source commit above.

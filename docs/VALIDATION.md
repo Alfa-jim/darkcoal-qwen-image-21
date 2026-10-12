@@ -18,8 +18,29 @@ early EOF; the installer now preserves that partial for a later resume.
 
 ## Container and publication
 
-Not yet built/published. The Dockerfile includes CPU import and native-flag smoke
-checks. GitHub Actions also runs these against the final runtime before pushing.
+2026-10-12: [GitHub Actions run #1](https://github.com/Alfa-jim/darkcoal-qwen-image-21/actions/runs/38202873602)
+completed successfully. Linux/Python 3.12 tests passed, all 394 native build steps
+completed, Docker build-time CPU smoke checks passed, and a separate final-runtime
+container smoke check passed before GHCR publication.
+
+Built source commit: `d7d83cc6d41ceb17854eebff01e7e7a41dc85265`.
+Engine source: `2988060a4338a5dcd94721c964a8e87003c1ac8b` (CUDA 12.8, sm86/sm89).
+Public image:
+
+```text
+ghcr.io/alfa-jim/darkcoal-qwen-image-21@sha256:b430f7bccc84365916936b5510b8167e7e30ec21dac8078778c3c5432fcf185d
+```
+
+Anonymous manifest/config access and SHA256 verification passed for both
+`latest` and `sha-d7d83cc6d41ceb17854eebff01e7e7a41dc85265`, pointing to the same
+digest. Registry config confirms `linux/amd64`. Compressed layers total
+2,342,020,807 bytes (2.34 GB). This is registry metadata verification; a full local
+image pull was not performed. The local Docker Desktop engine could not be restored,
+so container execution was verified on the GitHub Linux runner instead.
+
+All four pinned Hugging Face URLs responded to public HEAD requests with status
+200 and their exact expected byte sizes. No production model weights were
+downloaded locally; downloader integrity/resume tests used tiny HTTP fixtures.
 
 ## GPU acceptance
 
