@@ -5,6 +5,28 @@ const STORE = 'darkcoal-qwen21-playground-v1';
 const JOB_STORE = STORE + '-job';
 const fields = ['endpoint', 'key', 'prompt', 'width', 'height', 'seed'];
 let refs = [], nextRef = 1, uploading = false, busy = false, job = null, pollToken = 0, outputURL = null;
+let timerStarted = null, timerHandle = null;
+function duration(milliseconds) {
+  const seconds = Math.max(0, milliseconds / 1000);
+  return seconds < 60 ? seconds.toFixed(1) + 's' : Math.floor(seconds / 60) + 'm ' + (seconds % 60).toFixed(1) + 's';
+}
+function updateTimer() {
+  if (timerStarted !== null) $('timing').textContent = 'Elapsed: ' + duration(Date.now() - timerStarted) + ' · includes upload and queue time';
+}
+function startTimer(started = Date.now()) {
+  if (timerHandle !== null) clearInterval(timerHandle);
+  timerStarted = started; updateTimer(); timerHandle = setInterval(updateTimer, 100);
+}
+function finishTimer(data = {}) {
+  if (timerHandle !== null) clearInterval(timerHandle);
+  timerHandle = null;
+  const parts = [];
+  if (timerStarted !== null) parts.push('Total elapsed: ' + duration(Date.now() - timerStarted));
+  if (Number.isFinite(data.executionTime) && data.executionTime >= 0) parts.push('Worker: ' + duration(data.executionTime));
+  if (Number.isFinite(data.delayTime) && data.delayTime >= 0) parts.push('Queue: ' + duration(data.delayTime));
+  $('timing').textContent = parts.join(' · ') || 'Elapsed: —';
+  timerStarted = null;
+}
 function notice(message, error = false) {
   $('notice').textContent = message; $('notice').classList.toggle('error', error);
 }
@@ -164,12 +186,14 @@ async function poll() {
       const status = data.status;
       $('state').textContent = status || 'Checking';
       if (status === 'COMPLETED') {
+        finishTimer(data);
         try { displayOutput(data.output); }
         catch (error) { saveJob(null); throw error; }
         notice('Image ready.' + (typeof data.executionTime === 'number' ? ' Generation took ' + (data.executionTime / 1000).toFixed(1) + ' seconds.' : ''));
         saveJob(null); return;
       }
       if (['FAILED', 'CANCELLED', 'TIMED_OUT'].includes(status)) {
+        finishTimer(data);
         saveJob(null); throw new Error('Job ' + status.toLowerCase().replace('_', ' ') + (data.error ? ': ' + String(data.error) : '.'));
       }
       if (!['IN_QUEUE', 'IN_PROGRESS'].includes(status)) throw new Error('Unexpected job status. Resume the status check or inspect RunPod.');
@@ -184,12 +208,13 @@ async function generate() {
   if (busy || uploading || job) return;
   let body, conn;
   try { body = core.payload(settings(), refs); conn = connection(); } catch (e) { notice(e.message, true); return; }
-  save(); busy = true; renderRefs(); $('state').textContent = 'Submitting'; notice('Sending your request…');
+  save(); startTimer(); busy = true; renderRefs(); $('state').textContent = 'Submitting'; notice('Sending your request…');
   try {
     const accepted = await api(conn.base, '/run', conn.key, 'POST', body);
     if (typeof accepted.id !== 'string' || !accepted.id) throw new Error('RunPod did not return a job ID.');
-    saveJob({id: accepted.id, base: conn.base, created: Date.now()}); busy = false; await poll();
+    saveJob({id: accepted.id, base: conn.base, created: timerStarted}); busy = false; await poll();
   } catch (e) {
+    if (!job) finishTimer();
     $('state').textContent = 'Check RunPod';
     notice(e.message + ' Submission was not retried. Check the RunPod Requests tab before generating again; the request may have been accepted.', true);
   } finally { busy = false; renderRefs(); }
@@ -216,6 +241,10 @@ $('export').addEventListener('click', () => {
 });
 const pending = readStorage(JOB_STORE);
 if (pending && typeof pending.id === 'string' && typeof pending.base === 'string') {
-  try { core.endpoint(pending.base); job = pending; notice('A previous job is saved. Resume its status check to retrieve the result.'); } catch { writeStorage(JOB_STORE, null); }
+  try {
+    core.endpoint(pending.base); job = pending;
+    if (Number.isFinite(pending.created)) startTimer(pending.created);
+    notice('A previous job is saved. Resume its status check to retrieve the result.');
+  } catch { writeStorage(JOB_STORE, null); }
 }
 renderRefs();

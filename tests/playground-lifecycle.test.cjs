@@ -19,13 +19,15 @@ function harness(responses = [], persisted = new Map()) {
   const elements = new Map();
   const get = id => { if (!elements.has(id)) elements.set(id, new Element()); return elements.get(id); };
   for (const [id,value] of Object.entries({endpoint:'endpoint123',key:'fake-secret',prompt:'Test prompt',width:'1024',height:'1024',seed:'-1'})) get(id).value = value;
-  const calls = [];
+  const calls = [], intervals = new Map(); let now = 100000, nextInterval = 1;
   const context = vm.createContext({
     window:{QwenPlayground:core},document:{getElementById:get,querySelectorAll:()=>[],createElement:()=>new Element()},
     localStorage:{getItem:key=>persisted.get(key),setItem:(key,value)=>persisted.set(key,value),removeItem:key=>persisted.delete(key)},
     URL:{createObjectURL:()=> 'blob:mock',revokeObjectURL(){}},Blob,Uint8Array,AbortController,
     atob:value=>Buffer.from(value,'base64').toString('binary'),
     setTimeout:(fn,delay)=> { if (delay !== 45000) queueMicrotask(fn); return 1; },clearTimeout(){},
+    Date:class extends Date { static now() { return now; } },
+    setInterval:fn=> { const id = nextInterval++; intervals.set(id,fn); return id; }, clearInterval:id=>intervals.delete(id),
     fetch:async(url,options)=> {
       calls.push({url,...options}); const response = responses.shift();
       if (response instanceof Error) throw response;
@@ -34,7 +36,7 @@ function harness(responses = [], persisted = new Map()) {
     }
   });
   vm.runInContext(script,context);
-  return {context,elements,get,calls,persisted,run:code=>vm.runInContext(code,context)};
+  return {context,elements,get,calls,persisted,intervals,tick:ms=> { now += ms; for (const fn of intervals.values()) fn(); },run:code=>vm.runInContext(code,context)};
 }
 const png = Buffer.from([137,80,78,71,13,10,26,10,0]).toString('base64');
 test('one async submission followed by status checks displays output and clears saved job', async () => {
@@ -89,4 +91,21 @@ test('forget key removes saved secret without discarding other settings', async 
   const h = harness(); h.run('save()'); await h.get('forget').click();
   const stored = JSON.parse(h.persisted.get(STORE));
   assert.equal(stored.key,''); assert.equal(stored.endpoint,'endpoint123');
+});
+test('live timer advances and freezes with separate worker and queue durations', () => {
+  const h = harness(); h.run('startTimer()'); h.tick(65000);
+  assert.match(h.get('timing').textContent,/1m 5.0s/);
+  h.run('finishTimer({executionTime:2000,delayTime:3000})');
+  assert.equal(h.get('timing').textContent,'Total elapsed: 1m 5.0s · Worker: 2.0s · Queue: 3.0s');
+  const finished = h.get('timing').textContent; h.tick(10000);
+  assert.equal(h.get('timing').textContent,finished); assert.equal(h.intervals.size,0);
+});
+test('pending job restores elapsed time across refresh without any API request', () => {
+  const persisted = new Map([[STORE+'-job',JSON.stringify({id:'saved',base:'https://api.runpod.ai/v2/endpoint123',created:90000})]]);
+  const h = harness([],persisted); assert.match(h.get('timing').textContent,/10.0s/);
+  h.tick(1000); assert.match(h.get('timing').textContent,/11.0s/); assert.equal(h.calls.length,0);
+});
+test('failed submission stops its timer and next generation starts fresh', async () => {
+  const h = harness([new Error('Offline')]); await h.run('generate()'); assert.equal(h.intervals.size,0);
+  h.tick(50000); h.run('startTimer()'); assert.match(h.get('timing').textContent,/Elapsed: 0.0s/);
 });

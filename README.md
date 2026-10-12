@@ -146,6 +146,10 @@ the worker; change only size and seed in the playground.
 
 Generation uses asynchronous `/run` plus `/status/{id}` polling and offers
 `/cancel/{id}`. The job ID and endpoint are saved so **Resume status check** can
+restore the live elapsed timer after a refresh. Timing starts when you click
+Generate, includes upload/queue time, and freezes on completion or failure.
+The final timing also shows RunPod's worker execution and queue durations when
+provided. A saved job lets the status check
 retrieve an existing job without charging for another submission. Refreshing
 never automatically submits a generation. After a submission/network error,
 check RunPod's Requests tab before trying another generation. Download outputs
