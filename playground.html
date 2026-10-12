@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Darkcoal · Qwen 2.1 Playground</title>
+<link rel="stylesheet" href="playground.css">
+<script src="playground-core.js" defer></script><script src="playground.js" defer></script>
+</head>
+<body>
+<header><div class="brand">darkcoal <span>/ image playground</span></div><span class="model">Qwen 2.1 Turbo · Q4</span></header>
+<main>
+<aside>
+<h1>Make something<br>worth keeping.</h1>
+<p class="intro">One prompt. Up to ten pictures.<br>A little room to experiment.</p>
+<section aria-labelledby="connectionTitle">
+<h2 id="connectionTitle">RunPod connection</h2>
+<label for="endpoint">Endpoint URL or ID</label><input id="endpoint" type="text" placeholder="https://api.runpod.ai/v2/…" autocomplete="off" spellcheck="false">
+<label for="key">API key</label><div class="keyfield"><input id="key" type="password" placeholder="rpa_…" autocomplete="off" spellcheck="false"><button id="showKey" type="button" aria-label="Show API key">Show</button></div>
+<p class="help">Saved on this browser, including your API key. Use this playground on your own device.</p>
+<div class="actions"><button id="health" type="button">Check connection</button><button id="forget" type="button" class="quiet">Forget key</button></div>
+<p id="saved" class="help" role="status"></p>
+</section>
+<section><h2>Generation</h2><div class="pair"><div><label for="width">Width</label><input id="width" type="number" min="256" max="2048" step="32" value="1024"></div><div><label for="height">Height</label><input id="height" type="number" min="256" max="2048" step="32" value="1024"></div></div>
+<div class="presets"><button type="button" data-size="1024,1024">Square</button><button type="button" data-size="768,1024">Portrait</button><button type="button" data-size="1024,768">Landscape</button></div>
+<label for="seed">Seed</label><input id="seed" type="number" value="-1" min="-1" step="1"><p class="help">−1 chooses a fresh seed each time.</p>
+<div class="turbo"><strong>Turbo preset is ready</strong><p>8 steps · Euler · CFG 1<br>Model-specific sigma schedule</p><span>Fixed by the worker for this model.</span></div>
+</section>
+</aside>
+<div class="workspace">
+<section class="composer"><div class="sectionline"><h2>Your prompt</h2><span id="refCount">0 / 10 references</span></div>
+<label class="sr-only" for="prompt">Describe your image and mention references</label>
+<textarea id="prompt" maxlength="16384" placeholder="@picture1 is the character. Follow @picture2's pose. Give the scene a soft evening light."></textarea>
+<div id="mentions" class="mentions" hidden aria-label="Reference suggestions"></div>
+<p class="help">Type <code>@picture1</code> or click a picture’s label to insert a mention. <code>@picture 2</code> works too.</p>
+<details><summary>Prompt sent to the model</summary><p id="compiled" class="compiled">Your translated prompt will appear here.</p></details>
+<div class="sectionline references-title"><h2>Reference pictures</h2><button id="add" type="button">+ Add pictures</button></div>
+<input id="files" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
+<div id="drop" class="drop"><p id="dropHint">Drop PNG, JPEG or WebP files here.<br><span>Pictures are resized to 1024 px for a lighter request. Transparency is preserved.</span></p><div id="references" class="references"></div></div>
+<p class="help">Pictures stay in this tab only. Removing a picture keeps the other labels stable.</p>
+<div class="submitbar"><button id="generate" type="button" class="primary">Generate image <span>↗</span></button><button id="export" type="button">Save request JSON</button></div>
+</section>
+<section class="result"><div class="sectionline"><h2>Result</h2><span id="state">Ready</span></div>
+<div id="notice" role="status" aria-live="polite">Connect your endpoint, then make your first image.</div>
+<div id="jobActions" class="actions" hidden><button id="resume" type="button">Resume status check</button><button id="cancel" type="button">Cancel job</button></div>
+<p id="jobLabel" class="help"></p>
+<div id="output" class="output"><div class="empty"><span aria-hidden="true">✳</span><p>Your next image lives here.</p><small>Text-only prompts work too.<br>Add references when you want a character, pose or composition to follow.</small></div></div>
+<div id="downloads" class="actions"></div>
+</section>
+</div>
+</main>
+<footer>Local playground · Images go directly to your RunPod endpoint when you generate. No third-party scripts.</footer>
+</body></html>

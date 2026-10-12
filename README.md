@@ -112,6 +112,51 @@ and reloaded for the next request.
 
 ## 3. Submit requests
 
+### Browser playground
+
+Open `playground.html` locally, or double-click `OPEN_PLAYGROUND.cmd` on Windows
+(Python required). For a stable local origin on any platform:
+
+```bash
+python -m http.server 8765 --bind 127.0.0.1
+```
+
+Then open <http://127.0.0.1:8765/playground.html>. Use the same address each time
+to keep your saved settings. Enter your RunPod endpoint URL (or ID) and API key.
+They are saved in this browser's local storage, along with your prompt, size and
+seed. The key stays masked until you reveal it; **Forget key** removes its saved
+value. This is a personal local tool: do not enter your key on somebody else's
+hosted copy. There are no third-party scripts or analytics.
+
+Upload up to ten PNG/JPEG/WebP pictures, then write, for example:
+
+```text
+@picture1 is the character. Follow @picture 2's pose.
+```
+
+Click a reference label to insert it, or type `@` for suggestions. The playground
+translates mentions into `Picture 1`, `Picture 2`, etc. using the current upload
+order. Labels stay stable when you remove an image; missing mentions block
+submission. The **Prompt sent to the model** disclosure shows the translation.
+References are oriented and resized to at most 1024 px per side, keeping alpha
+as PNG and compressing opaque images as JPEG. They remain in memory only and
+must be uploaded again after a refresh. Requests are capped below the `/run`
+payload limit. Turbo's eight Euler steps, CFG 1 and sigma schedule are fixed by
+the worker; change only size and seed in the playground.
+
+Generation uses asynchronous `/run` plus `/status/{id}` polling and offers
+`/cancel/{id}`. The job ID and endpoint are saved so **Resume status check** can
+retrieve an existing job without charging for another submission. Refreshing
+never automatically submits a generation. After a submission/network error,
+check RunPod's Requests tab before trying another generation. Download outputs
+as PNG; **Save request JSON** exports inputs without credentials. Output images
+are not stored across refreshes. RunPod's async result retention is limited; save
+your PNG promptly. See the [official request documentation](https://docs.runpod.io/serverless/endpoints/send-requests).
+
+Helper and controller tests: `node --test tests/playground*.cjs` (Node 18+).
+
+### API requests
+
 Minimal request:
 
 ```json
