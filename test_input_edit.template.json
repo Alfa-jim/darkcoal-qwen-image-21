@@ -1,0 +1,11 @@
+{
+  "input": {
+    "prompt": "Change the background of Picture 1 to a sunset beach while preserving the subject",
+    "images": [
+      {"name": "ref1.png", "image": "REPLACE_WITH_BASE64_OR_USE_scripts/make_request.py"}
+    ],
+    "width": 1024,
+    "height": 1024,
+    "seed": 42
+  }
+}

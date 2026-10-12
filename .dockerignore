@@ -1,0 +1,9 @@
+*
+!Dockerfile
+!requirements.txt
+!handler.py
+!model-lock.json
+!worker/
+!worker/*.py
+!scripts/
+!scripts/smoke.py
